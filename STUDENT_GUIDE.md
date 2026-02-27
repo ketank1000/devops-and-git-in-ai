@@ -65,7 +65,7 @@ cd devops-and-git-in-ai
 ls -la
 ```
 
-You should see: `ai-model/`, `frontend/`, `database/`, `docker-compose.yml`, `jenkins/`, `scripts/`
+You should see: `ai-model/`, `frontend/`, `database/`, `docker-compose.yml`, `jenkins/`
 
 ---
 

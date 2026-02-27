@@ -53,9 +53,6 @@ devops-and-git-in-ai/
 ├── jenkins/
 │   ├── Jenkinsfile            # Task 10 – CI/CD pipeline
 │   └── docker-compose.yml
-└── scripts/
-    ├── build-and-push.sh      # Task 10
-    └── setup-jenkins.sh       # Task 10
 ```
 
 ---
