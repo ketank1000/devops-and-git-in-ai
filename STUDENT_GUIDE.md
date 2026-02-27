@@ -21,11 +21,15 @@
 
 Before starting, you need to install the following tools on your machine.
 
-### A. Install Required Tools (macOS)
+---
 
-Open Terminal and run each block one at a time:
+### A. Install Required Tools
 
-**1. Install Homebrew** (package manager for macOS):
+#### 🍎 macOS
+
+Open Terminal and run:
+
+**1. Install Homebrew** (package manager):
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
@@ -34,35 +38,71 @@ Open Terminal and run each block one at a time:
 ```bash
 brew install --cask docker
 ```
-→ After install, open Docker Desktop from Applications and wait for it to start (whale icon in menu bar turns solid).
+→ Open Docker Desktop from Applications and wait for the whale icon in the menu bar to turn solid.
 
+---
 
-### B. Verify All Tools Are Installed
+#### 🪟 Windows
 
-Run this single command to check everything at once:
+**1. Install Docker Desktop:**
+- Download from [https://docs.docker.com/desktop/install/windows-install/](https://docs.docker.com/desktop/install/windows-install/)
+- Run the installer and follow the prompts
+- When asked, enable **WSL 2** (Windows Subsystem for Linux) — this is required
+- Restart your machine if prompted
+- Open Docker Desktop from the Start menu and wait for it to say "Docker is running"
+
+**2. Enable WSL 2 (if not already done):**
+
+Open **PowerShell as Administrator** and run:
+```powershell
+wsl --install
+```
+Restart your machine, then verify:
+```powershell
+wsl --list --verbose
+```
+You should see a Linux distribution (e.g. Ubuntu) listed with `VERSION 2`.
+
+> 💡 All the `docker` commands in this guide work identically in **PowerShell**, **Command Prompt**, or the **WSL terminal** on Windows.
+
+---
+
+### B. Verify Docker Is Installed
+
+**macOS / Linux (Terminal):**
 ```bash
-for tool in docker; do
-  if command -v "$tool" &>/dev/null; then
-    echo "✅  $tool  →  $(which $tool)"
-  else
-    echo "❌  $tool NOT found"
-  fi
-done
+docker --version
+docker compose version
 ```
 
-**Expected output:**
+**Windows (PowerShell or Command Prompt):**
+```powershell
+docker --version
+docker compose version
 ```
-✅  docker  →  /usr/local/bin/docker
+
+**Expected output (both platforms):**
 ```
+Docker version 26.x.x, build ...
+Docker Compose version v2.x.x
+```
+
+---
 
 ### C. Clone / Open the Project
 
+**macOS:**
 ```bash
-cd /Users/<your-username>/Documents
-# If you already have the project folder:
+cd ~/Documents
 cd devops-and-git-in-ai
-# Verify the files are there
 ls -la
+```
+
+**Windows (PowerShell):**
+```powershell
+cd $HOME\Documents
+cd devops-and-git-in-ai
+dir
 ```
 
 You should see: `ai-model/`, `frontend/`, `database/`, `docker-compose.yml`, `jenkins/`
@@ -458,19 +498,36 @@ docker compose down -v
 
 ### Step 10.1 — Start Jenkins
 
+**macOS / Linux:**
 ```bash
 docker compose -f jenkins/docker-compose.yml up -d
 ```
 
+**Windows (PowerShell):**
+```powershell
+docker compose -f jenkins/docker-compose.yml up -d
+```
+
 Get the initial admin password:
+
+**macOS / Linux:**
 ```bash
 docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 
+**Windows (PowerShell):**
+```powershell
+docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+```
+
 Then open Jenkins:
+
+**macOS:**
 ```bash
 open http://localhost:8080
 ```
+
+**Windows:** Open your browser and go to `http://localhost:8080`
 
 ---
 
@@ -598,18 +655,27 @@ In a real project this job would run **automatically** on every push via a webho
 ## Troubleshooting
 
 ### ❓ "Port already in use"
+
+**macOS / Linux:**
 ```bash
-# Find what's using port 8000
 lsof -i :8000
-# Kill it
 kill -9 <PID>
+```
+
+**Windows (PowerShell):**
+```powershell
+netstat -ano | findstr :8000
+# Note the PID in the last column, then:
+Stop-Process -Id <PID> -Force
 ```
 
 ### ❓ Ollama is slow to respond / timing out
 The first request to TinyLlama loads the model into memory (~20–30 seconds). Subsequent requests are much faster. Be patient on the first message.
 
 ### ❓ `docker: command not found`
-Docker Desktop is not running. Open the Docker Desktop app from your Applications folder and wait for the whale icon to appear in the menu bar.
+Docker Desktop is not running.
+- **macOS:** Open Docker Desktop from the Applications folder and wait for the whale icon in the menu bar to turn solid.
+- **Windows:** Open Docker Desktop from the Start menu and wait for it to say "Docker is running" in the taskbar.
 
 ### ❓ Jenkins SCM dropdown only shows "None"
 The Git plugin is not installed. Go to **Manage Jenkins** → **Plugins** → **Available plugins**, search for `Git`, install it, then go back to your job configuration.
@@ -621,11 +687,17 @@ git add -A && git commit -m "initial commit"
 ```
 
 ### ❓ Completely start over (nuclear option)
+
+**macOS / Linux:**
 ```bash
-# Stop everything
 docker compose down -v 2>/dev/null
 docker system prune -af --volumes
-# Then start from Task 6 again
+```
+
+**Windows (PowerShell):**
+```powershell
+docker compose down -v
+docker system prune -af --volumes
 ```
 
 ---
@@ -634,11 +706,16 @@ docker system prune -af --volumes
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  DOCKER COMPOSE                                              │
-│  Start:   docker compose up -d --build                      │
-│  Stop:    docker compose down                               │
-│  Logs:    docker compose logs -f [service]                  │
-│  Status:  docker compose ps                                 │
+│  DOCKER COMPOSE  (macOS, Linux, Windows — commands are identical) │
+│  Start:   docker compose up -d --build                           │
+│  Stop:    docker compose down                                    │
+│  Logs:    docker compose logs -f [service]                       │
+│  Status:  docker compose ps                                      │
+├─────────────────────────────────────────────────────────────┤
+│  OPEN BROWSER                                                    │
+│  macOS:   open http://localhost:3000                             │
+│  Windows: start http://localhost:3000  (or just type in browser) │
+│  Jenkins: http://localhost:8080                                  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
