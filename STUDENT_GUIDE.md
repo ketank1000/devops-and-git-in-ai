@@ -451,10 +451,8 @@ docker compose down -v
 | **CI (Continuous Integration)** | Automatically build and test code on every commit |
 | **CD (Continuous Deployment)** | Automatically deploy passing builds to an environment |
 | **Jenkins** | An open-source automation server for CI/CD |
-| **Jenkinsfile** | A script (Groovy DSL) that defines the pipeline stages |
-| **Pipeline** | A series of automated steps: checkout → build → test → push → deploy |
-| **Agent** | The machine/container that executes pipeline steps |
-| **Credentials** | Secrets (passwords, keys) stored securely in Jenkins |
+| **Freestyle Job** | A Jenkins job where you define build steps as shell commands |
+| **Build Step** | A shell command Jenkins runs as part of the job |
 
 ---
 
@@ -487,13 +485,7 @@ open http://localhost:8080
 ### Step 10.3 — Install Required Plugins
 
 1. Click **"Install suggested plugins"** and wait for them to install (~3 minutes)
-2. After they finish, go to **Manage Jenkins** → **Plugins** → **Available plugins**
-3. Search and install these two plugins:
-   - ✅ `Pipeline`
-   - ✅ `Git`
-4. Click **"Install without restart"**
-
-> ⚠️ If you don't install `Git`, the SCM dropdown in the job config will only show **None**.
+2. That's it — the suggested plugins include everything you need for a Freestyle job.
 
 ---
 
@@ -505,99 +497,91 @@ open http://localhost:8080
 
 ---
 
-### Step 10.5 — Create the Pipeline Job
+### Step 10.5 — Create a Freestyle Job
 
 1. Click **"New Item"** on the Jenkins home page
-2. Enter name: `ai-chat-app`
-3. Select **"Pipeline"**
+2. Enter name: `ai-chat-lint`
+3. Select **"Freestyle project"**
 4. Click **"OK"**
 
-In the configuration:
-- Scroll to **"Pipeline"** section at the bottom
-- Set **Definition** to: `Pipeline script from SCM`
-- Set **SCM** to: `Git` *(if this only shows "None", the Git plugin is not installed — go back to Step 10.3)*
-- Set **Repository URL** to your local project path:
-  ```
-  file:///Users/<your-username>/Documents/personal/devops-and-git-in-ai
-  ```
-  Replace `<your-username>` with your actual macOS username (e.g. `kketan`)
-- Set **Branch Specifier** to: `*/main`
-- Set **Script Path** to: `jenkins/Jenkinsfile`
-- Click **"Save"**
-
-> ⚠️ The `file://` URL only works if the project folder is a git repo with at least one commit:
-> ```bash
-> cd /Users/<your-username>/Documents/personal/devops-and-git-in-ai
-> git add -A && git commit -m "initial commit"
-> ```
-
 ---
 
-### Step 10.7 — Read the Jenkinsfile
+### Step 10.6 — Add a Build Step
 
-```bash
-cat jenkins/Jenkinsfile
-```
-
-**The 2 stages explained:**
-
-| Stage | What it does |
-|-------|-------------|
-| **1. Checkout** | Clones the git repository |
-| **2. Lint** | Installs flake8 and runs it on `ai-model/main.py` |
-
-
----
-
-### Step 10.8 — Run the Pipeline
-
-1. Click **"Build Now"** on the `ai-chat-app` job page
-2. Click on the build number (e.g. `#1`) that appears
-3. Click **"Console Output"** to watch the pipeline run in real time
-
-You'll see each stage execute. A successful run looks like:
-```
-[Checkout] Checking out git repository...
-[Lint] Installing flake8...
-[Lint] Running flake8 on main.py...
-
-✅ Pipeline passed
-```
-
----
-
-### Step 10.9 — Trigger a Pipeline on Code Change
-
-1. Make a small change — e.g. edit the welcome text in `frontend/src/index.html`
-2. Commit the change:
+In the job configuration:
+1. Scroll down to **"Build Steps"**
+2. Click **"Add build step"** → **"Execute shell"**
+3. Paste this into the command box:
    ```bash
-   git add frontend/src/index.html
-   git commit -m "Update welcome message"
+   cd ai-model
+   pip install flake8 --quiet
+   flake8 main.py --max-line-length=120
    ```
-3. Go back to Jenkins and click **"Build Now"** again
+4. Click **"Save"**
 
-In a real project, Jenkins would automatically detect the git push (via a webhook) and trigger the pipeline without you having to click anything.
+This tells Jenkins: every time you run this job, go into the `ai-model` folder, install flake8, and lint `main.py`. If flake8 finds errors, the job turns red (❌). If it passes, it turns green (✅).
 
 ---
 
-### Step 10.10 — Understand the Full CI/CD Flow
+### Step 10.7 — Run the Job
+
+1. Click **"Build Now"** on the `ai-chat-lint` job page
+2. Click on **#1** that appears under "Build History"
+3. Click **"Console Output"** to see Jenkins run the shell command
+
+A successful run looks like:
+```
++ cd ai-model
++ pip install flake8 --quiet
++ flake8 main.py --max-line-length=120
+Finished: SUCCESS
+```
+
+If there are lint errors, the output shows the line and the problem, and the build turns red:
+```
+main.py:42:1: E302 expected 2 blank lines, found 1
+Finished: FAILURE
+```
+
+---
+
+### Step 10.8 — Introduce a Lint Error on Purpose
+
+This is the key learning moment — see how Jenkins catches a bad commit.
+
+1. Open `ai-model/main.py` and add a line with a deliberate error:
+   ```python
+   x=1  # no spaces around = (flake8 E225)
+   ```
+2. Commit it:
+   ```bash
+   git add ai-model/main.py
+   git commit -m "intentional lint error"
+   ```
+3. Go to Jenkins → **Build Now** → watch it **fail**
+4. Fix the error, commit again, build again → watch it **pass**
+
+---
+
+### Step 10.9 — Understand the CI/CD Flow
 
 ```
 Developer commits code
          │
          ▼
-    Jenkins runs pipeline
+    Jenkins runs the job
          │
          ▼
    ┌─────────────────────────────┐
-   │  Stage 1: Checkout          │  Clone the git repo
-   │  Stage 2: Lint              │  flake8 on main.py
+   │  Shell step: flake8 main.py │
    └─────────────────────────────┘
          │
          ▼
    ✅ Pass → code is clean
-   ❌ Fail → fix the lint errors, commit again
+   ❌ Fail → fix the errors, commit again
 ```
+
+In a real project this job would run **automatically** on every push via a webhook — no manual "Build Now" needed.
 
 ---
 
@@ -607,7 +591,7 @@ Developer commits code
 |------|-----------|-------------------|
 | **6** | Docker + Ollama + TinyLlama | Containerising an AI model |
 | **7** | Docker Compose | Multi-container orchestration |
-| **10** | Jenkins + Jenkinsfile | CI/CD pipeline automation |
+| **10** | Jenkins + Freestyle job | CI/CD automation with shell build steps |
 
 ---
 
@@ -633,7 +617,6 @@ The Git plugin is not installed. Go to **Manage Jenkins** → **Plugins** → **
 ### ❓ Jenkins pipeline fails with "repository not found"
 The project folder must be a git repo. Run:
 ```bash
-cd /Users/<your-username>/Documents/personal/devops-and-git-in-ai
 git add -A && git commit -m "initial commit"
 ```
 

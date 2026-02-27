@@ -51,7 +51,6 @@ devops-and-git-in-ai/
 │   └── init.sql               # Schema + seed data
 ├── docker-compose.yml         # Task 7 – multi-container
 ├── jenkins/
-│   ├── Jenkinsfile            # Task 10 – CI/CD pipeline
 │   └── docker-compose.yml
 ```
 
@@ -148,40 +147,15 @@ open http://localhost:8080
 
 ### Configure Jenkins
 
-1. **Install plugins**: Pipeline, Git, Docker Pipeline, Credentials Binding
-2. **Add credentials**:
-   - `docker-registry-credentials` → Username/Password for your registry
-3. **Create Pipeline job**:
-   - New Item → Pipeline
-   - Definition: Pipeline script from SCM
-   - SCM: Git → your repo URL
-   - Script Path: `jenkins/Jenkinsfile`
+1. **Install plugins**: Pipeline, Git
 
-### Pipeline stages
+### Run a build
 
-```
-Checkout
-   │
-   ▼
-Code Quality (lint Python, Dockerfile)        ← parallel
-   │
-   ▼
-Build Images (ai-model + frontend)            ← parallel
-   │
-   ▼
-Security Scan (Trivy vulnerability scan)
-   │
-   ▼
-Push Images → localhost:5000
-```
-
-### Trigger a build
-
+In Jenkins, create a **Freestyle** job and add a shell build step:
 ```bash
-# Manual via CLI (requires Jenkins CLI jar)
-java -jar jenkins-cli.jar -s http://localhost:8080 build ai-chat-app -p DEPLOY_ENV=dev
-
-# Or push to your git repo and the pipeline triggers automatically (configure webhook)
+cd ai-model
+pip install flake8 --quiet
+flake8 main.py --max-line-length=120
 ```
 
 ---
