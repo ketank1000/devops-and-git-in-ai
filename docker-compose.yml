@@ -1,0 +1,146 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Task 7: Docker Compose – AI Chat App (multi-container)
+#
+# Services:
+#   ollama    – open-source LLM runtime (TinyLlama)
+#   ai-model  – FastAPI wrapper / chat API
+#   postgres  – chat-history database
+#   frontend  – Nginx + static chat UI
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── 1. Ollama LLM runtime ──────────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    volumes:
+      - ollama-data:/root/.ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 6
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 6G       # TinyLlama needs ~2 GB; give headroom
+    networks:
+      - ai-network
+
+  # ── 2. One-shot job: pull the model once Ollama is ready ───────────────────
+  model-puller:
+    image: curlimages/curl:latest
+    container_name: model-puller
+    depends_on:
+      ollama:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo '⏳ Pulling model ${MODEL_NAME:-tinyllama} from Ollama…' &&
+        curl -sf -X POST http://ollama:11434/api/pull \
+             -H 'Content-Type: application/json' \
+             -d '{\"name\": \"${MODEL_NAME:-tinyllama}\", \"stream\": false}' \
+             --max-time 600 &&
+        echo '✅ Model pulled successfully'
+      "
+    networks:
+      - ai-network
+    restart: "no"
+
+  # ── 3. AI Model API (FastAPI) ──────────────────────────────────────────────
+  ai-model:
+    build:
+      context: ./ai-model
+      dockerfile: Dockerfile
+    image: ai-chat/ai-model:latest
+    container_name: ai-model
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - MODEL_NAME=${MODEL_NAME:-tinyllama}
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-chatdb}
+      - UVICORN_WORKERS=2
+    depends_on:
+      ollama:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 300s
+    networks:
+      - ai-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── 4. PostgreSQL – chat history persistence ───────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-chatdb}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/10_init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-chatdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai-network
+
+  # ── 5. Frontend – Nginx serving the chat UI ────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: ai-chat/frontend:latest
+    container_name: frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      ai-model:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - ai-network
+
+# ── Volumes ─────────────────────────────────────────────────────────────────
+volumes:
+  ollama-data:
+    name: ai-chat-ollama-data
+  postgres-data:
+    name: ai-chat-postgres-data
+
+# ── Network ──────────────────────────────────────────────────────────────────
+networks:
+  ai-network:
+    name: ai-chat-network
+    driver: bridge

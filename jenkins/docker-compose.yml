@@ -1,0 +1,21 @@
+# Task 10: Jenkins
+#
+# Usage:
+#   docker compose -f jenkins/docker-compose.yml up -d
+#
+# Access Jenkins at: http://localhost:8080
+# Get admin password: docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+
+services:
+
+  jenkins:
+    image: jenkins/jenkins:lts-jdk17
+    container_name: jenkins
+    ports:
+      - "8080:8080"     # Web UI
+      - "50000:50000"   # Agent communication
+    volumes:
+      - jenkins-data:/var/jenkins_home
+
+volumes:
+  jenkins-data:

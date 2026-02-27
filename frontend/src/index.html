@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Chat — TinyLlama</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ── Sidebar ─────────────────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">🤖 AI Chat</span>
+      <span class="badge">TinyLlama</span>
+    </div>
+
+    <button class="btn-new" onclick="newConversation()">＋ New Chat</button>
+
+    <div class="sidebar-section-title">Recent Chats</div>
+    <ul class="history-list" id="historyList"></ul>
+
+    <div class="sidebar-footer">
+      <div class="status-indicator" id="statusDot"></div>
+      <span id="statusText" class="status-text">Checking…</span>
+    </div>
+  </aside>
+
+  <!-- ── Main chat area ──────────────────────────────────────────────── -->
+  <main class="chat-area">
+
+    <header class="chat-header">
+      <div class="chat-title" id="chatTitle">New Conversation</div>
+      <div class="model-info">Model: <strong id="modelName">tinyllama</strong></div>
+    </header>
+
+    <div class="messages" id="messages">
+      <div class="welcome">
+        <div class="welcome-icon">🤖</div>
+        <h2>Hello! I'm TinyLlama</h2>
+        <p>An open-source AI assistant running entirely in your own infrastructure.<br/>
+           Ask me anything — I'm here to help!</p>
+      </div>
+    </div>
+
+    <div class="input-bar">
+      <textarea
+        id="userInput"
+        placeholder="Type a message… (Enter to send, Shift+Enter for newline)"
+        rows="1"
+        oninput="autoResize(this)"
+        onkeydown="handleKey(event)"
+      ></textarea>
+      <button class="btn-send" id="sendBtn" onclick="sendMessage()" title="Send">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </div>
+
+    <p class="disclaimer">AI can make mistakes. Verify important information.</p>
+  </main>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+// Task 10: Jenkinsfile – CI/CD Pipeline for AI Chat App
+//
+// Stages:
+//   1. Checkout  – clone the repo
+//   2. Lint      – run flake8 on the Python source
+
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                dir('ai-model') {
+                    sh '''
+                        pip install flake8 --quiet
+                        flake8 main.py --max-line-length=120
+                    '''
+                }
+            }
+        }
+
+    }
+
+    post {
+        success { echo '✅ Pipeline passed' }
+        failure { echo '❌ Pipeline failed' }
+    }
+}
