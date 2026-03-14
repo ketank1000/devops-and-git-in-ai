@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: model-puller
+spec:
+  template:
+    spec:
+      containers:
+        - name: model-puller
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              echo "⏳ Waiting for Ollama to be ready..."
+              until curl -sf http://ollama:11434/api/tags > /dev/null; do
+                echo "  not ready yet, retrying in 5s..."
+                sleep 5
+              done
+              echo "✅ Ollama is ready. Pulling tinyllama (this takes a few minutes)..."
+              curl -sf -X POST http://ollama:11434/api/pull \
+                -H 'Content-Type: application/json' \
+                -d '{"name": "tinyllama", "stream": false}' \
+                --max-time 600
+              echo "✅ Model pulled successfully!"
+      restartPolicy: OnFailure
+  backoffLimit: 3

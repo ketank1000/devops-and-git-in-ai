@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-model
+  labels:
+    app: ai-model
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-model
+  template:
+    metadata:
+      labels:
+        app: ai-model
+    spec:
+      containers:
+        - name: ai-model
+          image: ai-chat/ai-model:latest
+          imagePullPolicy: Never        # image was built inside Minikube — do not pull from Docker Hub
+          ports:
+            - containerPort: 8000
+          env:
+            - name: OLLAMA_HOST
+              value: "http://ollama:11434"
+            - name: MODEL_NAME
+              value: "tinyllama"
+            - name: DATABASE_URL
+              value: "postgresql://postgres:postgres@postgres:5432/chatdb"
+            - name: UVICORN_WORKERS
+              value: "1"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 20        # model load can take a while
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-model
+spec:
+  selector:
+    app: ai-model
+  ports:
+    - port: 8000
+      targetPort: 8000

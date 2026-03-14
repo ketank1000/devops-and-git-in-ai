@@ -1,0 +1,43 @@
+# ── Horizontal Pod Autoscaler — Frontend ──────────────────────────────────────
+# Scales frontend replicas between 1 and 5 based on CPU usage.
+# Requires metrics-server addon: minikube addons enable metrics-server
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: frontend-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: frontend
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50   # scale up when average CPU > 50%
+
+---
+# ── Horizontal Pod Autoscaler — AI Model ──────────────────────────────────────
+# Scales ai-model replicas between 1 and 3 based on CPU usage.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ai-model-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ai-model
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70   # scale up when average CPU > 70%
